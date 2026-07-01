@@ -2,7 +2,8 @@
  * 弹幕祝福语系统
  * Danmaku Blessing System
  * 
- * 半透明气泡从屏幕两侧飘过，显示虚拟用户头像 + 名称 + 祝福语
+ * 半透明气泡从屏幕两侧飘过，显示用户头像 + 名称 + 祝福语
+ * 支持虚拟预设 + 真实宾客RSVP提交的祝福
  */
 (function () {
     'use strict';
@@ -41,7 +42,7 @@
         { name: '萧然',   color: '#d4a8b8' },
     ];
 
-    // ==================== 祝福语列表 ====================
+    // ==================== 预设祝福语列表 ====================
     const BLESSINGS = [
         '百年好合 · 永结同心',
         '新婚快乐 · 幸福美满',
@@ -97,6 +98,12 @@
         return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
     }
 
+    // 为真实宾客生成随机暖色
+    function randomGuestColor() {
+        const colors = ['#e8a098', '#c9a96e', '#d4756b', '#8fb3c7', '#b8c9a8', '#c7a8d4', '#e8b8a0', '#a8c7d4', '#d4a8b8', '#a8d4b8'];
+        return colors[Math.floor(Math.random() * colors.length)];
+    }
+
     // ==================== 弹幕系统 ====================
     class DanmakuSystem {
         constructor(container) {
@@ -104,6 +111,8 @@
             this.timer = null;
             this.activeBubbles = new Set();
             this.running = false;
+            // 真实宾客祝福队列（优先展示）
+            this.realBlessings = [];
             // 预生成头像缓存
             this.avatarCache = {};
             USERS.forEach((u) => {
@@ -134,16 +143,42 @@
             this.activeBubbles.clear();
         }
 
+        // 添加真实宾客祝福（RSVP提交后调用）
+        addBlessing(name, message) {
+            const color = randomGuestColor();
+            const avatar = generateAvatar(name, color);
+            this.realBlessings.push({ name, message, avatar });
+            // 立即发射一条真实祝福
+            this._spawnReal();
+        }
+
         spawn() {
             if (this.activeBubbles.size >= CONFIG.maxBubbles) return;
 
+            // 优先展示真实祝福
+            if (this.realBlessings.length > 0) {
+                this._spawnReal();
+                return;
+            }
+
             const user = pickRandom(USERS);
             const text = pickRandom(BLESSINGS);
+            this._spawnBubble(user.name, text, this.avatarCache[user.name]);
+        }
+
+        _spawnReal() {
+            if (this.realBlessings.length === 0) return;
+            const blessing = this.realBlessings.shift();
+            this._spawnBubble(blessing.name, blessing.message, blessing.avatar);
+        }
+
+        _spawnBubble(name, text, avatarUrl) {
+            if (this.activeBubbles.size >= CONFIG.maxBubbles) return;
+
             const fromRight = Math.random() > 0.5;
             const top = CONFIG.minTop + Math.random() * (CONFIG.maxTop - CONFIG.minTop);
             const duration = CONFIG.minDuration + Math.random() * (CONFIG.maxDuration - CONFIG.minDuration);
             const fontSizeScale = CONFIG.fontSizeVariation ? (0.85 + Math.random() * 0.3) : 1;
-            const avatarUrl = this.avatarCache[user.name];
 
             const bubble = document.createElement('div');
             bubble.className = 'danmaku-bubble';
@@ -151,11 +186,10 @@
             bubble.style.fontSize = `calc(${0.82 * fontSizeScale}rem * var(--font-scale, 1.15))`;
             bubble.style.animation = `${fromRight ? 'danmaku-scroll-right' : 'danmaku-scroll-left'} ${duration}s linear forwards`;
 
-            // 内部结构：头像 + (名称 + 祝福语)
             bubble.innerHTML = `
                 <img class="danmaku-avatar" src="${avatarUrl}" alt="">
                 <div class="danmaku-text">
-                    <span class="danmaku-name">${user.name}</span>
+                    <span class="danmaku-name">${name}</span>
                     <span class="danmaku-msg">${text}</span>
                 </div>
             `;
@@ -163,7 +197,6 @@
             this.container.appendChild(bubble);
             this.activeBubbles.add(bubble);
 
-            // 动画结束后移除
             bubble.addEventListener('animationend', () => {
                 if (bubble.parentNode) {
                     bubble.parentNode.removeChild(bubble);
@@ -171,7 +204,6 @@
                 this.activeBubbles.delete(bubble);
             });
 
-            // 安全清理
             setTimeout(() => {
                 if (bubble.parentNode) {
                     bubble.parentNode.removeChild(bubble);

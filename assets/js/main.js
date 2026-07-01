@@ -6,6 +6,9 @@
 (function () {
     'use strict';
 
+    // ==================== 婚礼日期（用于倒计时） ====================
+    const WEDDING_DATE = new Date('2026-10-06T11:28:00+08:00').getTime();
+
     // ==================== 元素引用 ====================
     const invitation = document.getElementById('invitation');
     const pages = Array.from(invitation.querySelectorAll('.page'));
@@ -24,6 +27,103 @@
     let touchStartX = 0;
     let swipeThreshold = 50;
     let musicAutoPlayed = false;
+    let hasOpenedEnvelope = false;
+
+    // ==================== 婚期倒计时 ====================
+    function initCountdown() {
+        const daysEl = document.getElementById('countdown-days');
+        const hoursEl = document.getElementById('countdown-hours');
+        const minsEl = document.getElementById('countdown-mins');
+        const secsEl = document.getElementById('countdown-secs');
+        if (!daysEl) return;
+
+        function update() {
+            const now = Date.now();
+            let diff = WEDDING_DATE - now;
+            if (diff < 0) diff = 0;
+
+            const days = Math.floor(diff / 86400000);
+            const hours = Math.floor((diff % 86400000) / 3600000);
+            const mins = Math.floor((diff % 3600000) / 60000);
+            const secs = Math.floor((diff % 60000) / 1000);
+
+            daysEl.textContent = String(days).padStart(3, '0');
+            hoursEl.textContent = String(hours).padStart(2, '0');
+            minsEl.textContent = String(mins).padStart(2, '0');
+            secsEl.textContent = String(secs).padStart(2, '0');
+        }
+
+        update();
+        setInterval(update, 1000);
+    }
+
+    // ==================== 拆信封动画 ====================
+    function initEnvelope() {
+        const envelopeOverlay = document.getElementById('envelope-overlay');
+        const envelopeBody = document.getElementById('envelope-body');
+        const envelopeBtn = document.getElementById('envelope-open-btn');
+        if (!envelopeOverlay) return;
+
+        envelopeBtn.addEventListener('click', () => {
+            if (hasOpenedEnvelope) return;
+            hasOpenedEnvelope = true;
+
+            // 信封翻盖动画
+            envelopeBody.classList.add('opened');
+
+            // 淡出遮罩
+            setTimeout(() => {
+                envelopeOverlay.classList.add('fade-out');
+            }, 800);
+
+            // 完全移除
+            setTimeout(() => {
+                envelopeOverlay.style.display = 'none';
+                // 触发封面入场动画
+                triggerCoverAnimation();
+                // 启动音乐
+                tryPlayMusic();
+                // 启动弹幕
+                if (window._danmakuSystem) {
+                    setTimeout(() => window._danmakuSystem.start(), 1500);
+                }
+            }, 1600);
+        });
+    }
+
+    function triggerCoverAnimation() {
+        const animateEls = document.querySelectorAll('.page-cover .animate-in');
+        animateEls.forEach((el) => {
+            el.style.animation = 'none';
+            el.offsetHeight;
+            el.style.animation = null;
+        });
+    }
+
+    // ==================== 撒花按钮 ====================
+    function initFlowerBtn() {
+        const flowerBtn = document.getElementById('flower-btn');
+        if (!flowerBtn) return;
+
+        let burstCount = 0;
+        flowerBtn.addEventListener('click', () => {
+            burstCount++;
+
+            // 花瓣爆发
+            if (window._petalSystem) {
+                window._petalSystem.burst(12);
+            }
+
+            // 每3次触发一次烟花
+            if (burstCount % 3 === 0 && window._fireworksSystem) {
+                window._fireworksSystem.launch();
+            }
+
+            // 按钮动画
+            flowerBtn.classList.add('clicked');
+            setTimeout(() => flowerBtn.classList.remove('clicked'), 400);
+        });
+    }
 
     // ==================== 页面切换 ====================
     function goToPage(index) {
@@ -34,16 +134,13 @@
         const nextPage = pages[index];
         const direction = index > currentPage ? 'next' : 'prev';
 
-        // 更新页面类
         prevPage.classList.remove('active');
         prevPage.classList.add(direction);
         nextPage.classList.add('active');
 
-        // 更新指示器
         dots[currentPage].classList.remove('active');
         dots[index].classList.add('active');
 
-        // 翻页完成后清理
         setTimeout(() => {
             prevPage.classList.remove('prev', 'next');
             isAnimating = false;
@@ -51,16 +148,13 @@
 
         currentPage = index;
 
-        // 封面页隐藏提示，其他页显示
         if (currentPage === 0) {
             swipeHint.classList.remove('hidden');
         } else {
             swipeHint.classList.add('hidden');
         }
 
-        // 花瓣爆发效果（切换到相册页时）
         if (index === 1 && window._gallery) {
-            // 轮播回到第一张
             window._gallery.goTo(0);
             window._gallery.restartAutoPlay();
         }
@@ -69,13 +163,8 @@
         }
     }
 
-    function nextPage() {
-        goToPage(currentPage + 1);
-    }
-
-    function prevPage() {
-        goToPage(currentPage - 1);
-    }
+    function nextPage() { goToPage(currentPage + 1); }
+    function prevPage() { goToPage(currentPage - 1); }
 
     // ==================== 触摸/鼠标事件 ====================
     function handleTouchStart(e) {
@@ -92,38 +181,23 @@
     function handleSwipe(endX) {
         const deltaY = touchStartY - touchEndY;
         const deltaX = touchStartX - endX;
-
-        // 如果水平滑动大于垂直滑动，不触发翻页（让轮播处理）
         if (Math.abs(deltaX) > Math.abs(deltaY)) return;
 
-        if (deltaY > swipeThreshold) {
-            // 向上滑动 → 下一页
-            nextPage();
-        } else if (deltaY < -swipeThreshold) {
-            // 向下滑动 → 上一页
-            prevPage();
-        }
+        if (deltaY > swipeThreshold) nextPage();
+        else if (deltaY < -swipeThreshold) prevPage();
     }
 
-    // 绑定触摸事件
     invitation.addEventListener('touchstart', handleTouchStart, { passive: true });
     invitation.addEventListener('touchend', handleTouchEnd, { passive: true });
-
-    // 桌面端鼠标支持
     invitation.addEventListener('mousedown', handleTouchStart);
     invitation.addEventListener('mouseup', handleTouchEnd);
 
-    // 滚轮支持
     invitation.addEventListener('wheel', (e) => {
         e.preventDefault();
-        if (e.deltaY > 0) {
-            nextPage();
-        } else {
-            prevPage();
-        }
+        if (e.deltaY > 0) nextPage();
+        else prevPage();
     }, { passive: false });
 
-    // ==================== 键盘支持 ====================
     document.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') {
             e.preventDefault();
@@ -134,31 +208,24 @@
         }
     });
 
-    // ==================== 页面指示器点击 ====================
     dots.forEach((dot, index) => {
-        dot.addEventListener('click', () => {
-            goToPage(index);
-        });
+        dot.addEventListener('click', () => goToPage(index));
     });
 
     // ==================== 音乐控制 ====================
+    function tryPlayMusic() {
+        if (musicAutoPlayed) return;
+        bgMusic.play().then(() => {
+            musicAutoPlayed = true;
+            musicBtn.classList.add('playing');
+        }).catch(() => {});
+    }
+
     function initMusic() {
-        // 尝试自动播放（需要用户交互）
-        const tryPlay = () => {
-            if (musicAutoPlayed) return;
-            bgMusic.play().then(() => {
-                musicAutoPlayed = true;
-                musicBtn.classList.add('playing');
-            }).catch(() => {
-                // 用户未交互时无法自动播放是正常的
-            });
-        };
+        // 首次交互时播放（信封未打开时的备选）
+        document.addEventListener('touchstart', tryPlayMusic, { once: true });
+        document.addEventListener('click', tryPlayMusic, { once: true });
 
-        // 首次交互时播放
-        document.addEventListener('touchstart', tryPlay, { once: true });
-        document.addEventListener('click', tryPlay, { once: true });
-
-        // 音乐按钮切换
         musicBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (bgMusic.paused) {
@@ -170,7 +237,6 @@
             }
         });
 
-        // 音乐结束监听
         bgMusic.addEventListener('ended', () => {
             bgMusic.currentTime = 0;
             bgMusic.play();
@@ -182,7 +248,6 @@
         rsvpForm.addEventListener('submit', (e) => {
             e.preventDefault();
 
-            // 收集表单数据
             const data = {
                 name: document.getElementById('guest-name').value,
                 phone: document.getElementById('guest-phone').value,
@@ -191,33 +256,43 @@
                 message: document.getElementById('guest-message').value,
             };
 
-            // 简单验证
             if (!data.name || !data.phone) {
                 alert('请填写姓名和联系电话');
                 return;
             }
 
-            // 模拟提交（实际项目可对接后端API）
             console.log('RSVP 提交数据:', data);
+
+            // 添加真实祝福到弹幕系统
+            if (window._danmakuSystem) {
+                const blessingText = data.message || '祝你们新婚快乐，永远幸福！';
+                window._danmakuSystem.addBlessing(data.name, blessingText);
+                // 多发几条让宾客马上看到
+                setTimeout(() => window._danmakuSystem && window._danmakuSystem._spawnReal(), 500);
+                setTimeout(() => window._danmakuSystem && window._danmakuSystem._spawnReal(), 1200);
+            }
+
+            // 烟花庆祝
+            if (window._fireworksSystem) {
+                window._fireworksSystem.celebrate();
+            }
+
+            // 花瓣爆发
+            if (window._petalSystem) {
+                window._petalSystem.burst(30);
+            }
 
             // 显示感谢信息
             rsvpForm.style.display = 'none';
             rsvpForm.nextElementSibling.style.display = 'none';
             rsvpThanks.style.display = 'block';
-
-            // 花瓣爆发庆祝
-            if (window._petalSystem) {
-                window._petalSystem.burst(30);
-            }
         });
     }
 
     // ==================== 地图链接 ====================
     if (mapLink) {
         mapLink.addEventListener('click', () => {
-            // 实际项目中替换为真实地图链接
             const address = encodeURIComponent('杭州市西湖区杨公堤18号');
-            // 尝试打开高德地图
             window.open(`https://uri.amap.com/search?keyword=${address}&src=m&from=open`, '_blank');
         });
     }
@@ -228,29 +303,28 @@
         const elements = activePage.querySelectorAll('.animate-in');
         elements.forEach((el) => {
             el.style.animation = 'none';
-            el.offsetHeight; // 强制重绘
+            el.offsetHeight;
             el.style.animation = null;
         });
     }
 
     // ==================== 初始化 ====================
     function init() {
+        initEnvelope();
+        initCountdown();
         initMusic();
+        initFlowerBtn();
 
-        // 封面入场动画完成后隐藏提示
         setTimeout(() => {
-            // 首次访问后一段时间自动隐藏
             setTimeout(() => {
                 swipeHint.classList.remove('hidden');
             }, 1500);
         }, 2500);
 
-        // 监听页面切换触发入场动画
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 if (mutation.target.classList.contains('active')) {
                     animatePageEntrance();
-                    // 进入相册页时刷新懒加载
                     if (mutation.target.dataset.index === '1' && window._lazyLoader) {
                         window._lazyLoader.refresh();
                     }
@@ -263,7 +337,6 @@
         });
     }
 
-    // DOM 加载完成后初始化
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {

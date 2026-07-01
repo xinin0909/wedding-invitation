@@ -1121,7 +1121,261 @@ html, body {
     }
 }
 
-/* 减少动画偏好 */
+/* ==================== Loading 拆信封动画 ==================== */
+.envelope-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, #f4e4e1 0%, #e8d0c8 30%, #f8eee6 60%, #f0d8d0 100%);
+    transition: opacity 0.8s ease;
+}
+
+.envelope-overlay.fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.envelope-body {
+    position: relative;
+    width: 280px;
+    height: 200px;
+    perspective: 800px;
+}
+
+/* 信封翻盖（背面三角） */
+.envelope-flap {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 120px;
+    background: linear-gradient(135deg, #d4756b 0%, #b8594f 100%);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transform-origin: top center;
+    transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 3;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.envelope-body.opened .envelope-flap {
+    transform: rotateX(180deg) translateY(-2px);
+    z-index: 1;
+}
+
+/* 信封正面 */
+.envelope-front {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 160px;
+    background: linear-gradient(135deg, #e8a098 0%, #d4756b 100%);
+    border-radius: 4px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    overflow: hidden;
+}
+
+.envelope-front::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.08) 0%, transparent 100%);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    pointer-events: none;
+}
+
+/* 蜡封印章 */
+.envelope-seal {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #c9a96e 0%, #b8941e 70%, #8a6f15 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 3px rgba(255,255,255,0.3);
+    z-index: 4;
+    transition: opacity 0.4s;
+}
+
+.envelope-body.opened .envelope-seal {
+    opacity: 0;
+}
+
+.seal-text {
+    font-family: var(--font-brush);
+    font-size: 1.4rem;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* 信封上的名字 */
+.envelope-names {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+}
+
+.env-name {
+    font-family: var(--font-brush);
+    font-size: 1.5rem;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.env-amp {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-style: italic;
+}
+
+.envelope-hint {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: 0.2em;
+    margin-top: 0.8rem;
+    animation: hintPulse 2s ease-in-out infinite;
+}
+
+@keyframes hintPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+.envelope-open-btn {
+    margin-top: 0.6rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.3s, background 0.3s;
+    animation: btnBounce 2s ease-in-out infinite;
+}
+
+.envelope-open-btn:active {
+    transform: scale(0.9);
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.envelope-open-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+@keyframes btnBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+
+/* ==================== 婚期倒计时 ==================== */
+.countdown {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    margin: 1.2rem 0;
+}
+
+.countdown-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 48px;
+}
+
+.countdown-num {
+    font-family: var(--font-display);
+    font-size: calc(1.6rem * var(--font-scale, 1.15));
+    font-weight: 500;
+    color: var(--color-primary);
+    line-height: 1;
+    letter-spacing: 0.02em;
+    text-shadow: 0 1px 4px rgba(212, 117, 107, 0.15);
+}
+
+.countdown-label {
+    font-size: calc(0.65rem * var(--font-scale, 1.15));
+    color: var(--color-text-muted);
+    letter-spacing: 0.1em;
+    margin-top: 0.2rem;
+}
+
+.countdown-sep {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    color: var(--color-gold);
+    opacity: 0.6;
+    margin-top: -0.6rem;
+}
+
+/* ==================== 撒花按钮 ==================== */
+.flower-btn {
+    position: fixed;
+    bottom: 25px;
+    right: 20px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(212, 117, 107, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    cursor: pointer;
+    color: var(--color-primary);
+    transition: transform 0.3s, box-shadow 0.3s;
+    box-shadow: 0 2px 12px rgba(212, 117, 107, 0.12);
+}
+
+.flower-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+.flower-btn:active,
+.flower-btn.clicked {
+    transform: scale(0.85);
+    background: rgba(212, 117, 107, 0.1);
+}
+
+.flower-btn.clicked {
+    animation: flowerBtnPop 0.4s ease;
+}
+
+@keyframes flowerBtnPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(0.85); }
+}
+
+/* ==================== 减少动画偏好 ==================== */
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
         animation-duration: 0.01ms !important;
