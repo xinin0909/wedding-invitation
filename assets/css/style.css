@@ -1021,6 +1021,72 @@ html, body {
     .gallery-title-zh { font-size: 1.4rem; }
 }
 
+/* ==================== 弹幕祝福语 ==================== */
+.danmaku-layer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 40;
+    overflow: hidden;
+}
+
+.danmaku-bubble {
+    position: absolute;
+    white-space: nowrap;
+    padding: 0.5rem 1.2rem;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    font-family: var(--font-body);
+    font-size: calc(0.82rem * var(--font-scale, 1.15));
+    color: var(--color-primary);
+    letter-spacing: 0.08em;
+    box-shadow: 0 2px 12px rgba(212, 117, 107, 0.08);
+    opacity: 0;
+    will-change: transform, opacity;
+}
+
+/* 从右往左飘 */
+@keyframes danmaku-scroll-right {
+    0% {
+        transform: translateX(100vw) translateY(0);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.85;
+    }
+    90% {
+        opacity: 0.85;
+    }
+    100% {
+        transform: translateX(-120%) translateY(0);
+        opacity: 0;
+    }
+}
+
+/* 从左往右飘 */
+@keyframes danmaku-scroll-left {
+    0% {
+        transform: translateX(-120%) translateY(0);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.85;
+    }
+    90% {
+        opacity: 0.85;
+    }
+    100% {
+        transform: translateX(100vw) translateY(0);
+        opacity: 0;
+    }
+}
+
 /* 减少动画偏好 */
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
