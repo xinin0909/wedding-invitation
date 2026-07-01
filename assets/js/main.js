@@ -7,7 +7,7 @@
     'use strict';
 
     // ==================== 婚礼日期（用于倒计时） ====================
-    const WEDDING_DATE = new Date('2026-10-06T11:28:00+08:00').getTime();
+    const WEDDING_DATE = new Date('2026-09-06T11:28:00+08:00').getTime();
 
     // ==================== 元素引用 ====================
     const invitation = document.getElementById('invitation');
@@ -292,7 +292,7 @@
     // ==================== 地图链接 ====================
     if (mapLink) {
         mapLink.addEventListener('click', () => {
-            const address = encodeURIComponent('杭州市西湖区杨公堤18号');
+            const address = encodeURIComponent('马鞍山市花山区湖南西路与湖东路交叉口');
             window.open(`https://uri.amap.com/search?keyword=${address}&src=m&from=open`, '_blank');
         });
     }
