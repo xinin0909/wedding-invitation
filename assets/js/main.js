@@ -61,10 +61,9 @@
     function initEnvelope() {
         const envelopeOverlay = document.getElementById('envelope-overlay');
         const envelopeBody = document.getElementById('envelope-body');
-        const envelopeBtn = document.getElementById('envelope-open-btn');
-        if (!envelopeOverlay) return;
+        if (!envelopeOverlay || !envelopeBody) return;
 
-        envelopeBtn.addEventListener('click', () => {
+        function openEnvelope() {
             if (hasOpenedEnvelope) return;
             hasOpenedEnvelope = true;
 
@@ -74,7 +73,7 @@
             // 淡出遮罩
             setTimeout(() => {
                 envelopeOverlay.classList.add('fade-out');
-            }, 800);
+            }, 950);
 
             // 完全移除
             setTimeout(() => {
@@ -87,8 +86,10 @@
                 if (window._danmakuSystem) {
                     setTimeout(() => window._danmakuSystem.start(), 1500);
                 }
-            }, 1600);
-        });
+            }, 1750);
+        }
+
+        setTimeout(openEnvelope, 900);
     }
 
     function triggerCoverAnimation() {
